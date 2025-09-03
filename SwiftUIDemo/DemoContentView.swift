@@ -28,24 +28,45 @@ struct DemoContentView: View {
     @State private var rawText = NSAttributedString(string: "")
     @State private var documentPickerShowing: Bool = false
     @State private var rawShowing: Bool = false
+    @State private var viewerShowing: Bool = false
     @State private var demoHtml: String
     /// The `markupConfiguration` holds onto the name of any userResourceFiles we set in init.
     private let markupConfiguration = MarkupWKWebViewConfiguration()
     
     var body: some View {
         VStack(spacing: 0) {
-            MarkupEditorView(markupDelegate: self, configuration: markupConfiguration, html: $demoHtml, placeholder: "Add document content...", id: "Document")
-            if rawShowing {
+            if viewerShowing {
                 VStack {
-                    Divider()
                     HStack {
                         Spacer()
-                        Text("Document HTML")
+                        Text("Read-Only Viewer Mode")
+                            .font(.headline)
                         Spacer()
-                    }.background(Color(UIColor.systemGray5))
-                    TextView(text: $rawText, isEditable: false)
-                        .font(Font.system(size: StyleContext.P.fontSize))
-                        .padding([.top, .bottom, .leading, .trailing], 8)
+                    }
+                    .padding()
+                    .background(Color(UIColor.systemBlue).opacity(0.1))
+                    
+                    MarkupViewerView(html: $demoHtml)
+                        .background(Color(UIColor.systemBackground))
+                        .cornerRadius(8)
+                        .padding()
+                    
+                    Spacer()
+                }
+            } else {
+                MarkupEditorView(markupDelegate: self, configuration: markupConfiguration, html: $demoHtml, placeholder: "Add document content...", id: "Document")
+                if rawShowing {
+                    VStack {
+                        Divider()
+                        HStack {
+                            Spacer()
+                            Text("Document HTML")
+                            Spacer()
+                        }.background(Color(UIColor.systemGray5))
+                        TextView(text: $rawText, isEditable: false)
+                            .font(Font.system(size: StyleContext.P.fontSize))
+                            .padding([.top, .bottom, .leading, .trailing], 8)
+                    }
                 }
             }
         }
@@ -135,6 +156,16 @@ extension DemoContentView: FileToolbarDelegate {
 
     func rawDocument() {
         withAnimation { rawShowing.toggle()}
+    }
+    
+    func viewerMode() {
+        withAnimation {
+            viewerShowing.toggle()
+            // Hide raw HTML when switching to viewer mode
+            if viewerShowing {
+                rawShowing = false
+            }
+        }
     }
 
 }

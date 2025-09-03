@@ -1,9 +1,34 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
+import terser from '@rollup/plugin-terser';
 import pkg from './package.json' with { type: "json" };
 
-export default [
-	// browser-friendly UMD build
+const isViewer = process.env.BUILD === 'viewer';
+
+export default isViewer ? 
+	// MarkupViewer - read-only viewer UMD build
+	{
+		input: 'src/jsViewer/main.js',
+		output: {
+			file: 'dist/markupviewer.umd.js',
+			format: 'umd',
+			name: 'MV'  // so we can call MV.<exported function> from Swift
+		},
+		plugins: [
+			resolve(),
+			commonjs(),
+			terser({
+				compress: {
+					drop_console: true  // Remove console logs for production
+				},
+				mangle: {
+					keep_fnames: true  // Keep function names for debugging
+				}
+			})
+		],
+		treeshake: true  // Enable tree shaking for smaller bundle
+	} : 
+	// MarkupEditor - browser-friendly UMD build (default)
 	{
 		input: 'src/js/main.js',
 		output: {
@@ -12,23 +37,7 @@ export default [
             name: 'MU'  // so we can call MU.<exported function> from Swift
 		},
 		plugins: [
-			resolve(), // so Rollup can find `ms`
-			commonjs() // so Rollup can convert `ms` to an ES module
+			resolve(),
+			commonjs()
 		]
-	},
-
-	// CommonJS (for Node) and ES module (for bundlers) build.
-	// (We could have three entries in the configuration array
-	// instead of two, but it's quicker to generate multiple
-	// builds from a single configuration where possible, using
-	// an array for the `output` option, where we can specify
-	// `file` and `format` for each target)
-	//{
-	//	input: 'src/js/main.js',
-	//	external: ['ms'],
-	//	output: [
-	//		{ file: pkg.main, format: 'cjs' },
-	//		{ file: pkg.module, format: 'es' }
-	//	]
-	//}
-];
+	};

@@ -31,6 +31,11 @@ struct FileToolbar: View {
                 action: { fileToolbarDelegate?.rawDocument() },
                 onHover: { over in hoverLabel = Text(over ? "Raw HTML" : "File") }
             )
+            ToolbarImageButton(
+                systemName: "eye",
+                action: { fileToolbarDelegate?.viewerMode() },
+                onHover: { over in hoverLabel = Text(over ? "Viewer" : "File") }
+            )
         }
     }
 

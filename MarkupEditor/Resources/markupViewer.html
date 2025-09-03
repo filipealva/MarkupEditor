@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+        <meta name="supported-color-schemes" content="light dark">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        
+        <!-- Inlined critical CSS for fast rendering -->
+        <style>
+            /* Critical viewer-specific styles inlined for performance */
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system;
+                font: -apple-system-body;
+                background: transparent;
+                overflow: hidden; /* Prevent body scrolling */
+            }
+
+            #editor, .editor {
+                background: white;
+                color: black;
+                background-clip: padding-box;
+                margin: -4px -8px -4px -8px;
+                --padBottom: 0;
+                padding-block: 0 var(--padBottom);
+                overflow-x: clip;
+                min-height: 20px; /* Ensure minimum height for empty content */
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                #editor, .editor {
+                    background: black;
+                    color: white;
+                }
+            }
+
+            /* ProseMirror base styles */
+            .ProseMirror {
+                position: relative;
+                padding: 4px 8px 4px 8px;
+                line-height: 1.2;
+                outline: none;
+                word-wrap: break-word;
+                white-space: pre-wrap;
+                white-space: break-spaces;
+                -webkit-font-variant-ligatures: none;
+            }
+
+            .ProseMirror pre {
+                white-space: pre-wrap;
+            }
+
+            .ProseMirror li {
+                position: relative;
+            }
+
+            /* Disable selection highlighting for better performance */
+            .ProseMirror-hideselection *::selection { background: transparent; }
+            .ProseMirror-hideselection *::-moz-selection { background: transparent; }
+            .ProseMirror-hideselection { caret-color: transparent; }
+
+            /* Basic typography */
+            p {
+                font-size: 1.0em;
+                margin: 0 0 15px;
+            }
+
+            ul, ol {
+                padding-left: 30px;
+                margin: 0 0 15px;
+            }
+
+            h1 { font-size: 2.5em; }
+            h2 { font-size: 2.0em; }
+            h3 { font-size: 1.5em; }
+            h4 { font-size: 1.25em; }
+            h5 { font-size: 1.0em; }
+            h6 { font-size: 0.875em; }
+
+            /* Links */
+            a {
+                text-decoration: none;
+            }
+            
+            a:hover {
+                text-decoration: underline;
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                a {
+                    color: #4183c4;
+                }
+            }
+
+            /* Tables */
+            table {
+                border-collapse: collapse;
+                margin: 15px 0;
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            td, th {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            
+            th {
+                background-color: #f5f5f5;
+                font-weight: bold;
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                td, th {
+                    border-color: #555;
+                }
+                th {
+                    background-color: #333;
+                }
+            }
+
+            /* Code */
+            code {
+                background-color: #f5f5f5;
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: monospace;
+            }
+            
+            pre {
+                background-color: #f5f5f5;
+                padding: 12px;
+                border-radius: 4px;
+                overflow-x: auto;
+                margin: 15px 0;
+            }
+            
+            pre code {
+                background: transparent;
+                padding: 0;
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                code {
+                    background-color: #333;
+                }
+                pre {
+                    background-color: #333;
+                }
+            }
+
+            /* Blockquotes */
+            blockquote {
+                margin: 15px 0;
+                padding: 10px 20px;
+                border-left: 4px solid #ddd;
+                background-color: #f9f9f9;
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                blockquote {
+                    border-left-color: #555;
+                    background-color: #222;
+                }
+            }
+
+            /* Images */
+            img {
+                max-width: 100%;
+                height: auto;
+                display: block;
+                margin: 15px auto;
+            }
+
+            /* Selection styles for custom menu handling */
+            ::selection {
+                background-color: #b3d4fc;
+            }
+            
+            ::-moz-selection {
+                background-color: #b3d4fc;
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                ::selection {
+                    background-color: #264f78;
+                }
+                
+                ::-moz-selection {
+                    background-color: #264f78;
+                }
+            }
+
+            /* Ensure content doesn't overflow horizontally */
+            * {
+                box-sizing: border-box;
+                max-width: 100%;
+            }
+        </style>
+        
+        <!-- External CSS files loaded after critical styles -->
+        <link rel="stylesheet" type="text/css" href="mirror.css">
+        <link rel="stylesheet" type="text/css" href="markup.css">
+    </head>
+    
+    <body>
+        <!-- Editor container that will automatically size to content -->
+        <div id="editor"></div>
+        
+        <!-- Viewer JavaScript bundle -->
+        <script src="markupViewer.js"></script>
+        
+        <!-- Signal to Swift that the viewer is ready for user files -->
+        <script>
+            // Initialize the viewer once DOM is loaded
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initViewer);
+            } else {
+                initViewer();
+            }
+            
+            function initViewer() {
+                // Load user files if any are specified
+                if (typeof MV !== 'undefined' && MV.loadUserFiles) {
+                    MV.loadUserFiles(null, null);
+                }
+            }
+        </script>
+    </body>
+</html>

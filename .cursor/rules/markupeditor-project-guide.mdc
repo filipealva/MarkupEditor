@@ -1,0 +1,358 @@
+---
+description: Comprehensive guide for developing, customizing, and maintaining the MarkupEditor project
+alwaysApply: true
+---
+
+# MarkupEditor Project Development Guide
+
+A WYSIWYG markup editor for SwiftUI and UIKit apps using HTML/JavaScript (ProseMirror) under the hood.
+
+## Project Architecture
+
+### Core Components
+
+1. **Swift Layer**:
+   - `MarkupEditor.swift` - Main configuration and settings
+   - `MarkupWKWebView.swift` - Core WebView that handles HTML/JS
+   - `MarkupCoordinator.swift` - Bridge between Swift and JavaScript
+   - `MarkupDelegate.swift` - Protocol for handling editor events
+   - `MarkupEditorView.swift` - SwiftUI wrapper
+   - `MarkupEditorUIView.swift` - UIKit wrapper
+
+2. **JavaScript Layer** (ProseMirror-based):
+   - `Resources/markup.js` - **BUILD ARTIFACT** - Do not edit directly
+   - Source files in `MarkupEditor/rollup/src/js/`:
+     - `main.js` - Entry point, defines public API
+     - `markup.js` - Core MarkupEditor/ProseMirror integration
+     - `schema/index.js` - ProseMirror document schema
+     - `setup/index.js` - ProseMirror plugins configuration
+
+3. **Resources**:
+   - `markup.html` - Base HTML template
+   - `markup.css` - Editor styling
+   - `mirror.css` - ProseMirror-specific styles
+
+### Build System
+
+- **Swift**: Standard SPM/Xcode build
+- **JavaScript**: Rollup-based build system
+- Target platforms: iOS 15+, macCatalyst 15+
+
+## Development Workflow
+
+### Prerequisites
+
+- Xcode 16+
+- Node.js and npm
+- Rollup (`npm install -g rollup`)
+- Safari Developer Tools (for debugging)
+
+### Setup
+
+1. Clone repository
+2. Install JavaScript dependencies:
+   ```bash
+   cd MarkupEditor/rollup
+   npm install
+   ```
+
+### Combined Swift+JavaScript Development
+
+1. **Make JavaScript changes** in `MarkupEditor/rollup/src/js/`
+2. **Build JavaScript**:
+   ```bash
+   cd MarkupEditor/rollup
+   npm run build
+   ```
+3. **Build Swift** in Xcode using `MarkupEditor` target
+4. **Test** using SwiftUIDemo, UIKitDemo, or BasicTests
+
+**Important**: Always run `npm run build` after JavaScript changes before testing in Xcode.
+
+## Key Files Reference
+
+### Swift Files (MarkupEditor/)
+
+```typescript
+// Core Architecture
+MarkupEditor.swift           // Main settings and configuration
+MarkupWKWebView.swift       // WebView implementation
+MarkupCoordinator.swift     // Swift ↔ JavaScript bridge
+MarkupDelegate.swift        // Event handling protocol
+
+// SwiftUI/UIKit Wrappers
+MarkupEditorView.swift      // SwiftUI implementation
+MarkupEditorUIView.swift    // UIKit implementation
+
+// Toolbar Components
+MarkupToolbar.swift         // Main toolbar
+FormatToolbar.swift         // Text formatting buttons
+StyleToolbar.swift          // Style/heading selection
+InsertToolbar.swift         // Insert image/table/link
+```
+
+### JavaScript Source Files (rollup/src/js/)
+
+```typescript
+// Core Files - EDIT THESE, NOT Resources/markup.js
+main.js                     // Entry point, public API exports
+markup.js                   // MarkupEditor ↔ ProseMirror integration
+schema/index.js            // Document schema definition
+setup/index.js             // ProseMirror plugins setup
+setup/keymap.js            // Keyboard shortcuts
+setup/inputrules.js        // Input transformation rules
+```
+
+### Build Configuration
+
+```typescript
+// Build Files
+rollup/package.json         // Dependencies and build scripts
+rollup/rollup.config.mjs   // Rollup configuration
+Package.swift              // Swift Package Manager config
+```
+
+## Customization Guide
+
+### 1. Toolbar Customization
+
+**Early in app lifecycle** (e.g., AppDelegate):
+
+```swift
+@MainActor
+private static func setupMarkupEditor() {
+    // Style options
+    MarkupEditor.style = .compact  // or .labeled
+    MarkupEditor.allowLocalImages = true
+    
+    // Custom toolbar contents
+    let customContents = ToolbarContents(
+        correction: true,  // Undo/Redo
+        formatContents: FormatContents(
+            code: false,     // Remove code formatting
+            strike: false,   // Remove strikethrough
+            subSuper: false  // Remove sub/superscript
+        )
+    )
+    ToolbarContents.custom = customContents
+}
+```
+
+### 2. CSS Customization
+
+Create custom CSS file in your app bundle:
+
+```swift
+let config = MarkupWKWebViewConfiguration()
+config.userCssFile = "custom.css"
+```
+
+**CSS Example**:
+```css
+/* Override default heading styles */
+h4 {
+    font-weight: normal;
+    color: #666;
+}
+
+/* Custom paragraph styling */
+p {
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+```
+
+### 3. JavaScript Customization
+
+#### Option A: User Scripts (Simple)
+```swift
+let userScripts = [
+    "console.log('Custom script loaded');",
+    "MU.customFunction = function() { return 'Hello'; };"
+]
+// Pass to MarkupEditorView/MarkupEditorUIView
+```
+
+#### Option B: Script File
+```swift
+let config = MarkupWKWebViewConfiguration()
+config.userScriptFile = "custom.js"
+```
+
+#### Option C: Core JavaScript Modification (Advanced)
+
+**⚠️ Warning**: Modify source files, not `Resources/markup.js`
+
+1. Edit files in `MarkupEditor/rollup/src/js/`
+2. Add exports in `main.js`:
+   ```javascript
+   // Export new functions
+   export { customFunction } from './markup.js';
+   ```
+3. Implement in `markup.js`:
+   ```javascript
+   export function customFunction() {
+       // Your implementation using ProseMirror APIs
+   }
+   ```
+4. Build: `npm run build`
+5. Extend MarkupWKWebView:
+   ```swift
+   extension MarkupWKWebView {
+       public func customFunction(handler: ((String?) -> Void)? = nil) {
+           evaluateJavaScript("MU.customFunction()") { result, error in
+               handler?(result as? String)
+           }
+       }
+   }
+   ```
+
+### 4. Resource Files
+```swift
+let config = MarkupWKWebViewConfiguration()
+config.userResourceFiles = ["myImage.png", "myFont.woff2"]
+```
+
+## Testing
+
+### 1. Automated Tests
+
+Run `BasicTests` target in Xcode:
+- Tests all toolbar functionality
+- Validates undo/redo operations
+- Checks selection state after operations
+- Tests ~25 XCTest cases with multiple `HtmlTest` instances each
+
+### 2. Manual Testing
+
+Use demo projects:
+- **SwiftUIDemo**: SwiftUI implementation with various content views
+- **UIKitDemo**: UIKit implementation
+- Load `demo.html` which contains all supported elements
+
+### 3. JavaScript Testing
+
+Debug with Safari Web Inspector:
+1. Enable "Show features for web developers" in Safari
+2. Run demo app
+3. Safari → Develop → [Device] → [App] → MarkupWKWebView
+4. Set breakpoints in `Resources/markup.js` (build artifact)
+5. Step through code, modify source in `rollup/src/js/`, rebuild
+
+## Best Practices
+
+### Swift Development
+
+1. **Always use @MainActor** for MarkupEditor configuration:
+   ```swift
+   @MainActor
+   private func setupEditor() {
+       MarkupEditor.style = .compact
+   }
+   ```
+
+2. **Hold MarkupWKWebView reference** in MarkupDelegate:
+   ```swift
+   private var markupWebView: MarkupWKWebView?
+   
+   func markupLoaded(_ markupWebView: MarkupWKWebView) {
+       self.markupWebView = markupWebView
+   }
+   ```
+
+3. **Get HTML asynchronously**:
+   ```swift
+   markupWebView?.getHtml { html in
+       // Save or process HTML
+   }
+   ```
+
+### JavaScript Development
+
+1. **Never edit `Resources/markup.js` directly** - it's a build artifact
+2. **Always use ProseMirror APIs** - direct DOM manipulation won't work
+3. **Export functions in `main.js`** for Swift accessibility
+4. **Follow ProseMirror patterns** - use transactions for state changes
+
+### Debugging Guidelines
+
+1. **Enable web inspector** (DEBUG builds only):
+   ```swift
+   MarkupEditor.isInspectable = true
+   ```
+
+2. **Use Safari Web Inspector** for JavaScript debugging
+3. **Check both Swift and JavaScript logs** for issues
+4. **Test on both simulator and device** for platform-specific issues
+
+## Common Issues and Solutions
+
+### Build Issues
+
+**Problem**: "npm run build fails"
+- Check Node.js/npm versions compatibility
+- Delete `node_modules`, run `npm install`
+- Check for syntax errors in `rollup/src/js/`
+
+**Problem**: "JavaScript changes not reflected"
+- Ensure `npm run build` was run after changes
+- Check that `Resources/markup.js` was updated
+- Clean Xcode build if necessary
+
+### Runtime Issues
+
+**Problem**: "Keyboard dismissing on toolbar actions"
+- Known iOS issue, fixed in recent versions
+- Check iOS version compatibility
+
+**Problem**: "Images not loading"
+- Verify `MarkupEditor.allowLocalImages = true`
+- Check image file paths and bundle inclusion
+- Test with both local and remote images
+
+### Customization Issues
+
+**Problem**: "Custom CSS not loading"
+- Verify CSS file is in app bundle
+- Check `MarkupWKWebViewConfiguration.userCssFile` path
+- Validate CSS syntax
+
+**Problem**: "Custom JavaScript functions not accessible"
+- Ensure functions are exported in `main.js`
+- Check `npm run build` completed successfully
+- Verify function names match in Swift extensions
+
+## Version Compatibility
+
+- **Swift 5.7+** required
+- **iOS 15+** minimum deployment
+- **ProseMirror** dependencies managed via npm
+- **Node.js 20+** recommended for build
+- **Safari 17.2+** for advanced search highlighting
+
+## Project Structure Summary
+
+```
+MarkupEditor/
+├── MarkupEditor/                    # Swift source
+│   ├── *.swift                     # Core implementation
+│   ├── Resources/                  # Runtime resources
+│   │   ├── markup.html            # HTML template
+│   │   ├── markup.js              # 🚫 BUILD ARTIFACT
+│   │   ├── markup.css             # Styles
+│   │   └── mirror.css             # ProseMirror styles
+│   └── rollup/                     # JavaScript build system
+│       ├── src/js/                 # ✅ EDIT THESE FILES
+│       │   ├── main.js            # Entry point
+│       │   ├── markup.js          # Core integration
+│       │   ├── schema/            # Document schema
+│       │   └── setup/             # ProseMirror setup
+│       ├── package.json           # NPM dependencies
+│       └── rollup.config.mjs      # Build configuration
+├── SwiftUIDemo/                    # SwiftUI demo app
+├── UIKitDemo/                      # UIKit demo app
+├── MarkupEditorTests/             # Test suite
+└── Package.swift                   # SPM configuration
+```
+
+Remember: This project combines Swift and JavaScript development. Always rebuild JavaScript after changes and test thoroughly across both platforms.

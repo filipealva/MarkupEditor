@@ -61,6 +61,80 @@ Add the `MarkupEditor` package to your Xcode project using File -> Swift Package
 
 Clone this repository and build the MarkupFramework target in Xcode. Add the MarkupEditor.framework as a dependency to your project.
 
+## MarkupViewer
+
+The MarkupEditor package also includes **MarkupViewer**, a read-only HTML viewer optimized for extremely fast rendering with automatic height adjustment.
+
+### Features
+
+- **Instantaneous rendering** with no perceptible flicker
+- **Automatic height sizing** - respects container width, grows/shrinks to fit content
+- **Custom selection menu** - only "Select All" and "Copy" options
+- **Performance optimized** - singleton warm-up strategy, tree-shaken JavaScript bundle, inlined critical CSS
+- **SwiftUI-first** with clean, declarative API
+
+### Basic Usage
+
+```swift
+import SwiftUI
+import MarkupEditor
+
+struct ContentView: View {
+    let htmlContent = """
+    <h1>Welcome</h1>
+    <p>This content renders <strong>instantly</strong> with automatic height adjustment.</p>
+    """
+    
+    var body: some View {
+        ScrollView {
+            MarkupViewerView(staticHtml: htmlContent)
+                .padding()
+        }
+    }
+}
+```
+
+### Dynamic Content
+
+```swift
+struct DynamicViewer: View {
+    @State private var htmlContent = "<p>Loading...</p>"
+    
+    var body: some View {
+        MarkupViewerView(html: .constant(htmlContent))
+            .onAppear {
+                loadContent { newHtml in
+                    htmlContent = newHtml
+                }
+            }
+    }
+}
+```
+
+### Advanced Configuration
+
+```swift
+// Custom configuration for CSS and JavaScript
+let config = MarkupViewerConfiguration(
+    userCssFile: "custom-viewer.css",
+    userScriptFile: "viewer-extensions.js"
+)
+
+MarkupViewerView(
+    html: .constant(htmlContent),
+    configuration: config
+)
+```
+
+### Performance Notes
+
+The MarkupViewer uses several optimization strategies:
+
+- **Singleton warm-up**: Shared `WKProcessPool` and `WKWebsiteDataStore` for instant loading
+- **Optimized JavaScript**: Minified bundle with tree shaking (viewer-only functionality)
+- **Critical CSS inlined**: Fast first paint with external stylesheets loaded after
+- **Read-only optimizations**: No editing plugins or input handling overhead
+
 ## Using the MarkupEditor
 
 Behind the scenes, the MarkupEditor interacts with an HTML document (created in `markup.html`) that uses a single `contentEditable` DIV element to modify the DOM of the document you are editing. It uses a subclass of `WKWebView` - the `MarkupWKWebView` - to make calls to the JavaScript in `markup.js`. In turn, the JavaScript calls back into Swift to let the Swift side know that changes occurred. The callbacks on the Swift side are handled by the `MarkupCoordinator`. The `MarkupCoordinator` is the `WKScriptMessageHandler` for a single  `MarkupWKWebView` and receives all the JavaScript callbacks in `userContentController(_:didReceive:)`.  The `MarkupCoordinator` in turn notifies your `MarkupDelegate` of changes. See `MarkupDelegate.swift` for the full protocol and default implementations. 
@@ -369,6 +443,68 @@ searchQuery?.start()
 ```
 
 Then, if you need to locate the `text` in the document itself once you dereference it from the `id`, you would use the approach in [Searching Within A Document](#searching-within-a-document) on a MarkupWKWebView containing the `contents`.
+
+## Development and Building
+
+### JavaScript Development
+
+The MarkupEditor (and MarkupViewer) use ProseMirror on the JavaScript side. Source JavaScript files are located in:
+
+- **Editor**: `MarkupEditor/rollup/src/js/` 
+- **Viewer**: `MarkupEditor/rollup/src/jsViewer/`
+
+Build artifacts are automatically copied to `MarkupEditor/Resources/`:
+- `markup.js` (editor bundle)
+- `markupViewer.js` (viewer bundle)
+
+### Prerequisites
+
+- Xcode 16+
+- Node.js and npm
+- Rollup build tools
+
+### Setup
+
+1. Install JavaScript dependencies:
+   ```bash
+   cd MarkupEditor/rollup
+   npm install
+   ```
+
+### Building JavaScript
+
+**Editor only:**
+```bash
+npm run build
+```
+
+**Viewer only:**
+```bash
+npm run build:viewer
+```
+
+**Both:**
+```bash
+npm run build:all
+```
+
+### Development Workflow
+
+1. **Make JavaScript changes** in `rollup/src/js/` (editor) or `rollup/src/jsViewer/` (viewer)
+2. **Build JavaScript** using the appropriate npm command above
+3. **Build Swift** in Xcode
+4. **Test** using SwiftUIDemo, UIKitDemo, or BasicTests
+
+**Important**: Always run the appropriate build command after JavaScript changes before testing in Xcode.
+
+### Viewer-Specific Development
+
+The MarkupViewer has its own dedicated build process:
+
+- **Source**: `rollup/src/jsViewer/`
+- **Build**: `npm run build:viewer`
+- **Output**: `Resources/markupViewer.js` and `Resources/markupViewer.html`
+- **Features**: Minified, tree-shaken bundle optimized for read-only viewing
 
 ## Tests
 

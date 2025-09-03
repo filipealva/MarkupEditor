@@ -14,4 +14,5 @@ protocol FileToolbarDelegate {
     func newDocument(handler: ((URL?)->Void)?)
     func existingDocument(handler: ((URL?)->Void)?)
     func rawDocument()
+    func viewerMode()
 }
