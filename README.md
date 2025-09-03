@@ -135,6 +135,10 @@ The MarkupViewer uses several optimization strategies:
 - **Critical CSS inlined**: Fast first paint with external stylesheets loaded after
 - **Read-only optimizations**: No editing plugins or input handling overhead
 
+### Integration Guide
+
+For detailed integration instructions, migration guidance, and real-world examples, see the **[MarkupViewer Integration Guide](VIEWER_INTEGRATION_GUIDE.md)**.
+
 ## Using the MarkupEditor
 
 Behind the scenes, the MarkupEditor interacts with an HTML document (created in `markup.html`) that uses a single `contentEditable` DIV element to modify the DOM of the document you are editing. It uses a subclass of `WKWebView` - the `MarkupWKWebView` - to make calls to the JavaScript in `markup.js`. In turn, the JavaScript calls back into Swift to let the Swift side know that changes occurred. The callbacks on the Swift side are handled by the `MarkupCoordinator`. The `MarkupCoordinator` is the `WKScriptMessageHandler` for a single  `MarkupWKWebView` and receives all the JavaScript callbacks in `userContentController(_:didReceive:)`.  The `MarkupCoordinator` in turn notifies your `MarkupDelegate` of changes. See `MarkupDelegate.swift` for the full protocol and default implementations. 
