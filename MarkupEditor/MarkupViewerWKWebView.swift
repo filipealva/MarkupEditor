@@ -152,29 +152,82 @@ public class MarkupViewerWKWebView: WKWebView, ObservableObject {
         // 1. Try Bundle.module when compiled via SPM
         #if SWIFT_PACKAGE
         if let url = Bundle.module.url(forResource: name, withExtension: ext) {
+            print("✅ Found resource via Bundle.module: \(name).\(ext ?? "")")
             return url
         }
         #endif
         
         // 2. Try the bundle that contains this class (framework/cocoapods style)
         if let url = Bundle(for: MarkupViewerWKWebView.self).url(forResource: name, withExtension: ext) {
+            print("✅ Found resource via Bundle(for:): \(name).\(ext ?? "")")
             return url
         }
         
-        // 3. Fallback to main app bundle to allow user overrides
-        return Bundle.main.url(forResource: name, withExtension: ext)
+        // 3. Try to find MarkupEditor bundle by identifier
+        if let markupBundle = Bundle(identifier: "com.stevengharris.MarkupEditor") {
+            if let url = markupBundle.url(forResource: name, withExtension: ext) {
+                print("✅ Found resource via Bundle identifier: \(name).\(ext ?? "")")
+                return url
+            }
+        }
+        
+        // 4. Try all loaded bundles to find MarkupEditor resources
+        for bundle in Bundle.allBundles {
+            if let bundleId = bundle.bundleIdentifier,
+               (bundleId.contains("MarkupEditor") || bundleId.contains("markupeditor")) {
+                if let url = bundle.url(forResource: name, withExtension: ext) {
+                    print("✅ Found resource in bundle \(bundleId): \(name).\(ext ?? "")")
+                    return url
+                }
+            }
+        }
+        
+        // 5. Fallback to main app bundle to allow user overrides
+        if let url = Bundle.main.url(forResource: name, withExtension: ext) {
+            print("✅ Found resource in main bundle: \(name).\(ext ?? "")")
+            return url
+        }
+        
+        // 6. Last resort - check if the file is directly in the Resources directory
+        // This helps with local development
+        let fileManager = FileManager.default
+        let devPath = NSHomeDirectory() + "/Developer/MarkupEditor/MarkupEditor/Resources/\(name).\(ext ?? "")"
+        if fileManager.fileExists(atPath: devPath) {
+            let devUrl = URL(fileURLWithPath: devPath)
+            print("⚠️ Using development path: \(devUrl.path)")
+            return devUrl
+        }
+        
+        print("❌ Could not find resource: \(name).\(ext ?? "")")
+        return nil
     }
     
     /// Initialize viewer resource files
     private func initRootFiles() {
-        guard
-            let viewerHtml = url(forResource: "markupViewer", withExtension: "html"),
-            let viewerJs = url(forResource: "markupViewer", withExtension: "js"),
-            let markupCss = url(forResource: "markup", withExtension: "css"),
-            let mirrorCss = url(forResource: "mirror", withExtension: "css") else {
-            assertionFailure("Could not find markupViewer.html, js, css files.")
+        print("🔍 MarkupViewer: Initializing resource files...")
+        
+        let viewerHtml = url(forResource: "markupViewer", withExtension: "html")
+        let viewerJs = url(forResource: "markupViewer", withExtension: "js")
+        let markupCss = url(forResource: "markup", withExtension: "css")
+        let mirrorCss = url(forResource: "mirror", withExtension: "css")
+        
+        guard let viewerHtml = viewerHtml,
+              let viewerJs = viewerJs,
+              let markupCss = markupCss,
+              let mirrorCss = mirrorCss else {
+            let missing = [
+                viewerHtml == nil ? "markupViewer.html" : nil,
+                viewerJs == nil ? "markupViewer.js" : nil,
+                markupCss == nil ? "markup.css" : nil,
+                mirrorCss == nil ? "mirror.css" : nil
+            ].compactMap { $0 }
+            
+            print("❌ MarkupViewer: Missing resources: \(missing.joined(separator: ", "))")
+            assertionFailure("Could not find required MarkupViewer resources: \(missing.joined(separator: ", "))")
             return
         }
+        
+        print("✅ MarkupViewer: All required resources found")
         
         var srcUrls = [viewerHtml, viewerJs, markupCss, mirrorCss]
         
