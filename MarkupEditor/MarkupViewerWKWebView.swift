@@ -147,10 +147,22 @@ public class MarkupViewerWKWebView: WKWebView, ObservableObject {
         #endif
     }
     
-    /// Get the URL for a resource, checking MarkupEditor bundle first, then main bundle as fallback
+    /// Get the URL for a resource, checking MarkupEditor package bundles first, then main bundle as fallback
     func url(forResource name: String, withExtension ext: String?) -> URL? {
-        let url = bundle().url(forResource: name, withExtension: ext)
-        return url ?? Bundle.main.url(forResource: name, withExtension: ext)
+        // 1. Try Bundle.module when compiled via SPM
+        #if SWIFT_PACKAGE
+        if let url = Bundle.module.url(forResource: name, withExtension: ext) {
+            return url
+        }
+        #endif
+        
+        // 2. Try the bundle that contains this class (framework/cocoapods style)
+        if let url = Bundle(for: MarkupViewerWKWebView.self).url(forResource: name, withExtension: ext) {
+            return url
+        }
+        
+        // 3. Fallback to main app bundle to allow user overrides
+        return Bundle.main.url(forResource: name, withExtension: ext)
     }
     
     /// Initialize viewer resource files
