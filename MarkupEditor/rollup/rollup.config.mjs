@@ -16,15 +16,7 @@ export default isViewer ?
 		},
 		plugins: [
 			resolve(),
-			commonjs(),
-			terser({
-				compress: {
-					drop_console: true  // Remove console logs for production
-				},
-				mangle: {
-					keep_fnames: true  // Keep function names for debugging
-				}
-			})
+			commonjs()
 		],
 		treeshake: true  // Enable tree shaking for smaller bundle
 	} : 
