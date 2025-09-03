@@ -147,10 +147,10 @@ public class MarkupViewerWKWebView: WKWebView, ObservableObject {
         #endif
     }
     
-    /// Get the URL for a resource, checking main bundle first
+    /// Get the URL for a resource, checking MarkupEditor bundle first, then main bundle as fallback
     func url(forResource name: String, withExtension ext: String?) -> URL? {
         let url = bundle().url(forResource: name, withExtension: ext)
-        return Bundle.main.url(forResource: name, withExtension: ext) ?? url
+        return url ?? Bundle.main.url(forResource: name, withExtension: ext)
     }
     
     /// Initialize viewer resource files
